@@ -1,0 +1,4 @@
+{
+    "python.linting.flake8Path": "~/.virtualenvs/djapm/bin/flake8",
+    "python.pythonPath": "~/.virtualenvs/djapm/bin/python"
+}
