@@ -1,4 +1,4 @@
-version: '2.4'
+version: '3.8'
 services:
   postgres:
     image: postgres:12
@@ -11,63 +11,28 @@ services:
     ports:
       - 5432:5432
 
-  apm_server:
-    image: docker.elastic.co/apm/apm-server:7.8.1
-    # cap_add: ["CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID"]
-    # cap_drop: ["ALL"]
-    volumes:
-      - ./conf/apm-server.docker.yml:/usr/share/apm-server/apm-server.yml
-    ports:
-      - 8200:8200
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-      kibana:
-        condition: service_healthy
-    healthcheck:
-      interval: 10s
-      retries: 12
-      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200/
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1
+  rabbitmq:
+    image: rabbitmq:3-management
     environment:
-      - node.name=es
-      - cluster.name=es-docker-cluster
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - 5672:5672
+      - 15672:15672
     volumes:
-      - esdata:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
-    healthcheck:
-      interval: 20s
-      retries: 10
-      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+      - rabbitmq_data:/var/lib/rabbitmq
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:7.8.1
-    environment:
-      ELASTICSEARCH_URL: http://elasticsearch:9200
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    ports:
-      - 5601:5601
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    healthcheck:
-      interval: 10s
-      retries: 20
-      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
+  # redis:
+  #   image: redis:5
+  #   ports:
+  #     - 6379:6379
+  #   volumes:
+  #     - redis_data:/data
 
 volumes:
-  esdata:
   pg_data:
+  rabbitmq_data:
+  redis_data:
 
 networks:
   default:
