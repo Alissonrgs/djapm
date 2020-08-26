@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 
+# third party
+from celery.schedules import crontab
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -39,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # third party
+    'django_celery_beat',
     'django_extensions',
     'elasticapm.contrib.django',
     'rest_framework',
@@ -140,8 +144,8 @@ STATIC_URL = '/static/'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50,
-    'MAX_PAGE_SIZE': 100,
+    'PAGE_SIZE': 20,
+    'MAX_PAGE_SIZE': 50,
 
     'DEFAULT_FILTER_BACKENDS': [
         # 'django_filters.rest_framework.DjangoFilterBackend',
@@ -157,13 +161,40 @@ REST_FRAMEWORK = {
 
     # by default, only authenticated users may use the API
     'DEFAULT_PERMISSION_CLASSES': [
-        # 'rest_framework.permissions.IsAuthenticated'
+        'rest_framework.permissions.IsAuthenticated'
     ]
 }
 
 
-# ### Elastic APM ###
-# https://www.elastic.co/guide/en/apm/agent/python/5.x/django-support.html
+# ### CELERY ###
+# https://docs.celeryproject.org/en/v4.4.7/userguide/configuration.html
+
+# If this is True, all tasks will be executed locally by blocking until the task returns
+# CELERY_TASK_ALWAYS_EAGER = True
+
+CELERY_HOST = 'localhost'
+CELERY_PORT = '5672'
+CELERY_USER = 'guest'
+CELERY_PASSWD = 'guest'
+
+# broker url should not end with /
+# if you specify port, things will brake; probably a bug
+CELERY_BROKER_URL = f'amqp://{CELERY_USER}:{CELERY_PASSWD}@{CELERY_HOST}/'
+# CELERY_RESULT_BACKEND = f'redis://{CELERY_HOST}/0'
+CELERY_TIMEZONE = 'America/Fortaleza'
+
+# CELERY BEAT
+CELERY_BEAT_SCHEDULE = {
+    'user-count': {
+        'task': 'accounts.tasks.user_count_task',
+        'schedule': crontab()  # Execute every minute
+    }
+}
+
+
+# ### ELASTIC APM ###
+# https://www.elastic.co/guide/en/apm/agent/python/current/django-support.html
+# https://www.elastic.co/guide/en/apm/agent/python/current/instrumenting-custom-code.html
 
 ELASTIC_APM = {
     # Set required service name. Allowed characters:
@@ -175,6 +206,7 @@ ELASTIC_APM = {
 
     # Set custom APM Server URL (default: http://localhost:8200)
     'SERVER_URL': 'http://localhost:8200',
+    'TRANSACTIONS_IGNORE_PATTERNS': ['^OPTIONS'],
 
     'DEBUG': DEBUG
 }
