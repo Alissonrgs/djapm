@@ -36,7 +36,7 @@ docker-compose -f apm-docker-compose.yml up -d
 pip install -r requirements/dev.txt
 ```
 
-- Inicar Django
+- Iniciar Django
 ```
 ./manage.py runserver
 ```
